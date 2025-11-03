@@ -202,7 +202,7 @@ func (cc *CustomCommand) Validate(tmpl web.TemplateData, guild_id int64) (ok boo
 	isValidCCLength := validateCCResponseLength(cc.Responses, guild_id)
 
 	if cc.IsEnabled && !isValidCCLength {
-		tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 10k for free servers, and 20k for premium servers"))
+        tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 100k for all servers"))
 		return false
 	}
 
@@ -371,8 +371,8 @@ func filterEmptyResponses(s string, ss ...string) []string {
 const (
 	MaxCommands                 = 100
 	MaxCommandsPremium          = 250
-	MaxCCResponsesLength        = 10000
-	MaxCCResponsesLengthPremium = 20000
+	MaxCCResponsesLength        = 100000
+	MaxCCResponsesLengthPremium = 100000
 	MaxUserMessages             = 20
 	MaxGroups                   = 50
 )
