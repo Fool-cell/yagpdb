@@ -129,7 +129,7 @@ type CustomCommand struct {
 	TriggerType     CommandTriggerType `json:"trigger_type"`
 	TriggerTypeForm string             `json:"-" schema:"type"`
 	Trigger         string             `json:"trigger" schema:"trigger" valid:",0,1000"`
-	Responses       []string           `json:"responses" schema:"responses" valid:"template,20000"`
+	Responses       []string           `json:"responses" schema:"responses" valid:"template,1000000"`
 	CaseSensitive   bool               `json:"case_sensitive" schema:"case_sensitive"`
 	ID              int64              `json:"id"`
 	Name            string             `json:"name" schema:"name" valid:",0,100"`
@@ -202,7 +202,7 @@ func (cc *CustomCommand) Validate(tmpl web.TemplateData, guild_id int64) (ok boo
 	isValidCCLength := validateCCResponseLength(cc.Responses, guild_id)
 
 	if cc.IsEnabled && !isValidCCLength {
-		tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 10k for free servers, and 20k for premium servers"))
+		tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 100k"))
 		return false
 	}
 
@@ -369,10 +369,10 @@ func filterEmptyResponses(s string, ss ...string) []string {
 }
 
 const (
-	MaxCommands                 = 100
-	MaxCommandsPremium          = 250
-	MaxCCResponsesLength        = 10000
-	MaxCCResponsesLengthPremium = 20000
+	MaxCommands                 = 10000
+	MaxCommandsPremium          = 10000
+	MaxCCResponsesLength        = 1000000
+	MaxCCResponsesLengthPremium = 1000000
 	MaxUserMessages             = 20
 	MaxGroups                   = 50
 )
