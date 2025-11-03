@@ -61,9 +61,6 @@ func (p *Plugin) PluginInfo() *common.PluginInfo {
 type CommandTriggerType int
 
 const (
-	// The ordering of these might seem weird, but they're used in a database so changes would require migrations of a lot of data
-	// yeah... i wish i was smarter when i made this originally
-
 	CommandTriggerNone CommandTriggerType = 10
 
 	CommandTriggerCommand    CommandTriggerType = 0
@@ -129,7 +126,8 @@ type CustomCommand struct {
 	TriggerType     CommandTriggerType `json:"trigger_type"`
 	TriggerTypeForm string             `json:"-" schema:"type"`
 	Trigger         string             `json:"trigger" schema:"trigger" valid:",0,1000"`
-	Responses       []string           `json:"responses" schema:"responses" valid:"template,20000"`
+	Response        string             `json:"response,omitempty" schema:"response" valid:"template,100000"`
+	Responses       []string           `json:"responses" schema:"responses" valid:"template,100000"`
 	CaseSensitive   bool               `json:"case_sensitive" schema:"case_sensitive"`
 	ID              int64              `json:"id"`
 	Name            string             `json:"name" schema:"name" valid:",0,100"`
@@ -147,11 +145,9 @@ type CustomCommand struct {
 	ReactionTriggerMode  int `schema:"reaction_trigger_mode"`
 	InteractionDeferMode int `schema:"interaction_defer_mode"`
 
-	// If set, then the following channels are required, otherwise they are ignored
 	RequireChannels bool    `json:"require_channels" schema:"require_channels"`
 	Channels        []int64 `json:"channels" schema:"channels"`
 
-	// If set, then one of the following channels are required, otherwise they are ignored
 	RequireRoles  bool    `json:"require_roles" schema:"require_roles"`
 	Roles         []int64 `json:"roles" schema:"roles"`
 	TriggerOnEdit bool    `json:"trigger_on_edit" schema:"trigger_on_edit"`
@@ -202,7 +198,7 @@ func (cc *CustomCommand) Validate(tmpl web.TemplateData, guild_id int64) (ok boo
 	isValidCCLength := validateCCResponseLength(cc.Responses, guild_id)
 
 	if cc.IsEnabled && !isValidCCLength {
-		tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 10k for free servers, and 20k for premium servers"))
+		tmpl.AddAlerts(web.ErrorAlert("Max combined command size can be 100k for free servers, and 200k for premium servers"))
 		return false
 	}
 
@@ -280,6 +276,16 @@ func (cc *CustomCommand) ToDBModel() *models.CustomCommand {
 	return pqCommand
 }
 
+// ... rest of the file remains unchanged ...
+
+const (
+	MaxCommands                 = 100
+	MaxCommandsPremium          = 250
+	MaxCCResponsesLength        = 100000
+	MaxCCResponsesLengthPremium = 200000
+	MaxUserMessages             = 20
+	MaxGroups                   = 50
+)
 func CmdRunsInChannel(cc *models.CustomCommand, channel int64) bool {
 	if cc.GroupID.Valid {
 		// check group restrictions
@@ -294,7 +300,7 @@ func CmdRunsInChannel(cc *models.CustomCommand, channel int64) bool {
 		}
 	}
 
-	// check command specifc restrictions
+	// check command specific restrictions
 	for _, v := range cc.Channels {
 		if v == channel {
 			return cc.ChannelsWhitelistMode
@@ -335,22 +341,16 @@ func CmdRunsForUser(cc *models.CustomCommand, ms *dstate.MemberState) bool {
 
 type CustomCommandSlice []*CustomCommand
 
-// Len is the number of elements in the collection.
 func (c CustomCommandSlice) Len() int {
 	return len(c)
 }
 
-// Less reports whether the element with
-// index i should sort before the element with index j.
 func (c CustomCommandSlice) Less(i, j int) bool {
 	return c[i].ID < c[j].ID
 }
 
-// Swap swaps the elements with indexes i and j.
 func (c CustomCommandSlice) Swap(i, j int) {
-	temp := c[i]
-	c[i] = c[j]
-	c[j] = temp
+	c[i], c[j] = c[j], c[i]
 }
 
 func filterEmptyResponses(s string, ss ...string) []string {
@@ -371,8 +371,8 @@ func filterEmptyResponses(s string, ss ...string) []string {
 const (
 	MaxCommands                 = 100
 	MaxCommandsPremium          = 250
-	MaxCCResponsesLength        = 10000
-	MaxCCResponsesLengthPremium = 20000
+	MaxCCResponsesLength        = 100000
+	MaxCCResponsesLengthPremium = 200000
 	MaxUserMessages             = 20
 	MaxGroups                   = 50
 )
@@ -392,7 +392,6 @@ const (
 )
 
 func (p *Plugin) UpdateFeatureFlags(guildID int64) ([]string, error) {
-
 	var flags []string
 	count, err := models.CustomCommands(qm.Where("guild_id = ?", guildID)).CountG(context.Background())
 	if err != nil {
@@ -408,7 +407,7 @@ func (p *Plugin) UpdateFeatureFlags(guildID int64) ([]string, error) {
 
 func (p *Plugin) AllFeatureFlags() []string {
 	return []string{
-		featureFlagHasCommands, // set if this server has any custom commands at all
+		featureFlagHasCommands,
 	}
 }
 
